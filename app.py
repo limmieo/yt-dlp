@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import subprocess
+import json
 
 app = Flask(__name__)
-CORS(app)  # ✅ Enable CORS for all routes
+CORS(app)
 
 @app.route('/api', methods=['POST'])
 def download():
@@ -14,11 +15,16 @@ def download():
 
     try:
         result = subprocess.run(
-            ["yt-dlp", "-g", url],
+            ["yt-dlp", "--cookies", "ig_cookies.txt", "--dump-json", url],
             capture_output=True, text=True, check=True
         )
-        download_url = result.stdout.strip()
-        return jsonify({"status": "ok", "url": download_url})
+        info = json.loads(result.stdout)
+        return jsonify({
+            "status": "ok",
+            "url": info.get("url"),
+            "title": info.get("title"),
+            "caption": info.get("description")
+        })
     except subprocess.CalledProcessError as e:
         return jsonify({"status": "error", "details": e.stderr}), 500
 
